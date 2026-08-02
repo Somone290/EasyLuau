@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LuauQuest — Learn Luau (Roblox)</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="bg-glow" aria-hidden="true"></div>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4Z" fill="url(#lg)"/>
+          <path d="M10 8.5v7M10 8.5h4.5" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="lg" x1="3" y1="3" x2="21" y2="21">
+              <stop stop-color="#7c8bff"/><stop offset="1" stop-color="#22d3ee"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div>
+        <h1>Luau<span>Quest</span></h1>
+        <p>Master Luau — the language of Roblox Studio</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="progress-card" title="Completed levels">
+        <div class="progress-text">
+          <span id="progress-label">0 / 19</span>
+          <span id="progress-pct">0%</span>
+        </div>
+        <div class="bar"><div id="progress-fill"></div></div>
+      </div>
+      <button id="reset-progress" class="ghost" title="Reset all progress">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Reset
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <nav id="lesson-list" aria-label="Levels"></nav>
+
+  <section id="content">
+    <div id="banner" hidden></div>
+
+    <article id="lesson">
+      <div class="lesson-head">
+        <span class="lesson-badge" id="lesson-badge">01</span>
+        <div class="lesson-head-text">
+          <h2 id="lesson-title"></h2>
+          <p class="lesson-meta" id="lesson-meta"></p>
+        </div>
+        <span class="status-tag" id="lesson-status"></span>
+      </div>
+      <div id="lesson-body"></div>
+    </article>
+
+    <div id="playground">
+      <div class="editor-header">
+        <div class="dots" aria-hidden="true"><span></span><span></span><span></span></div>
+        <span class="filename">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2"/><path d="M14 2v6h6M9 13h6M9 17h4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Script.lua
+        </span>
+        <div class="editor-btns">
+          <button id="run-btn" class="run">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M8 5.14v13.72a1 1 0 0 0 1.52.86l11-6.86a1 1 0 0 0 0-1.72l-11-6.86A1 1 0 0 0 8 5.14Z" fill="currentColor"/></svg>
+            Run &amp; Check
+          </button>
+        </div>
+      </div>
+
+      <div id="editor-wrap">
+        <div id="gutter"></div>
+        <pre id="highlight" aria-hidden="true"></pre>
+        <textarea id="code" spellcheck="false" autocomplete="off" aria-label="Lua code editor"></textarea>
+      </div>
+
+      <div class="output-header">
+        <span class="output-label">Output</span>
+        <span class="hint">Ctrl+Enter to run</span>
+        <button id="reset-btn" class="ghost">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v4h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Reset to example
+        </button>
+      </div>
+      <pre id="output"></pre>
+
+      <div id="hint-box" class="hint-box" hidden>
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2h6c0-.7.4-1.5 1-2A7 7 0 0 0 12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div>
+          <div class="hint-title">A hint for the code you just tried</div>
+          <div id="hint-text"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="complete-overlay" class="overlay" hidden>
+  <div class="complete-card">
+    <div class="complete-badge">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 6 9 17l-5-5" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <h2 id="complete-title">YOU COMPLETED LEVEL 1</h2>
+    <p id="complete-sub">Level 2 is now unlocked</p>
+    <button id="complete-continue">Continue</button>
+  </div>
+</div>
+
+<script src="luau-wasm.js"></script>
+<script src="luau.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
