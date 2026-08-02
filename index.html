@@ -115,8 +115,94 @@
   </div>
 </div>
 
+<div id="admin-login" class="overlay" hidden>
+  <div class="admin-card">
+    <div class="admin-brand">EasyLuau Admin</div>
+    <div id="login-view">
+      <input id="admin-email" type="email" placeholder="Email" autocomplete="email">
+      <input id="admin-pass" type="password" placeholder="Password" autocomplete="current-password">
+      <div id="admin-login-msg" class="admin-msg"></div>
+      <button id="admin-login-btn" class="admin-primary">Log in</button>
+      <button id="admin-forgot-btn" class="ghost">Forgot password?</button>
+    </div>
+    <div id="reset-view" hidden>
+      <div id="reset-step1">
+        <input id="reset-email" type="email" placeholder="Email">
+        <div id="reset-msg" class="admin-msg"></div>
+        <button id="reset-send-btn" class="admin-primary">Send reset code</button>
+      </div>
+      <div id="reset-step2" hidden>
+        <input id="reset-code" type="text" placeholder="One-time code" inputmode="numeric">
+        <input id="reset-newpass" type="password" placeholder="New password" autocomplete="new-password">
+        <div id="reset-code-msg" class="admin-msg"></div>
+        <button id="reset-verify-btn" class="admin-primary">Change password</button>
+      </div>
+      <button id="reset-back-btn" class="ghost">Back to login</button>
+    </div>
+  </div>
+</div>
+
+<div id="admin-panel" hidden>
+  <div class="admin-panel-head">
+    <strong>Admin Panel</strong>
+    <button id="admin-panel-close" title="Log out">&#215;</button>
+  </div>
+  <div id="admin-tabs" class="admin-tabs">
+    <button data-tab="levels" class="active">Levels</button>
+    <button data-tab="live">Live</button>
+    <button data-tab="settings">Settings</button>
+  </div>
+  <div id="tab-levels" class="admin-tab">
+    <button id="admin-add-level" class="admin-primary">+ Add level</button>
+    <div id="admin-level-list"></div>
+    <div id="admin-editor" hidden>
+      <h4 id="ed-header">Edit level</h4>
+      <div class="ed-grid">
+        <label>Title<input id="ed-title" type="text"></label>
+        <label>Tag<input id="ed-tag" type="text"></label>
+      </div>
+      <label>Lesson body (HTML)<textarea id="ed-body" rows="6"></textarea></label>
+      <label>Example code<textarea id="ed-example" rows="5" spellcheck="false"></textarea></label>
+      <label>Challenge (HTML)<textarea id="ed-challenge" rows="3"></textarea></label>
+      <label>Check type
+        <select id="ed-check-type">
+          <option value="exact">Exact output lines</option>
+          <option value="contains">Contains text</option>
+        </select>
+      </label>
+      <label id="ed-expected-wrap">Expected output (one line per expected line)<textarea id="ed-expected" rows="3" spellcheck="false"></textarea></label>
+      <label id="ed-contains-wrap" hidden>Required text (one per line)<textarea id="ed-contains" rows="3" spellcheck="false"></textarea></label>
+      <div id="ed-msg" class="admin-msg"></div>
+      <div class="ed-actions">
+        <button id="ed-save" class="admin-primary">Save level</button>
+        <button id="ed-cancel" class="ghost">Cancel</button>
+        <button id="ed-delete" class="admin-danger" hidden>Reset to original</button>
+      </div>
+    </div>
+  </div>
+  <div id="tab-live" class="admin-tab" hidden>
+    <div id="live-summary"></div>
+    <div id="live-feed"></div>
+  </div>
+  <div id="tab-settings" class="admin-tab" hidden>
+    <h4>Firebase setup</h4>
+    <div id="fb-setup-info"></div>
+    <textarea id="fb-config-input" rows="9" spellcheck="false" placeholder='{"apiKey": "...", ...}'></textarea>
+    <div class="ed-actions">
+      <button id="fb-save-btn" class="admin-primary">Save config</button>
+      <button id="fb-clear-btn" class="ghost">Clear config</button>
+    </div>
+    <h4>Change password</h4>
+    <input id="change-curr" type="password" placeholder="Current password" autocomplete="current-password">
+    <input id="change-new" type="password" placeholder="New password" autocomplete="new-password">
+    <button id="change-pass-btn" class="admin-primary">Update password</button>
+  </div>
+</div>
+
 <script src="luau-wasm.js"></script>
 <script src="luau.js"></script>
 <script src="app.js"></script>
+<script src="firebase-config.js"></script>
+<script src="admin.js"></script>
 </body>
 </html>

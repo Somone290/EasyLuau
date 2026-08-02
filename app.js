@@ -1,4 +1,4 @@
-const LESSONS = [
+const BASE_LESSONS = [
   {
     title: "Hello, World!",
     tag: "Basics",
@@ -618,6 +618,30 @@ end`,
   }
 ];
 
+let LESSONS = getEffectiveLessons();
+window.BASE_LESSONS = BASE_LESSONS;
+
+function getEffectiveLessons() {
+  let v = null;
+  try { v = JSON.parse(localStorage.getItem("admin_levels") || "null"); } catch (e) { v = null; }
+  if (!v || typeof v !== "object") v = { overrides: {}, customs: [] };
+  const list = BASE_LESSONS.map((l, i) => Object.assign({}, l, v.overrides && v.overrides[i]));
+  (Array.isArray(v.customs) ? v.customs : []).forEach((c) => list.push(Object.assign({}, c)));
+  return list;
+}
+
+window.addEventListener("lessons-changed", () => {
+  LESSONS = getEffectiveLessons();
+  updateProgressBar();
+  renderList();
+  if (current >= LESSONS.length) current = Math.max(0, LESSONS.length - 1);
+  selectLesson(current);
+});
+
+function reportActivity(type, data) {
+  if (window.FBApp && typeof window.FBApp.report === "function") window.FBApp.report(type, data);
+}
+
 const lessonList = document.getElementById("lesson-list");
 const lessonBadge = document.getElementById("lesson-badge");
 const lessonTitle = document.getElementById("lesson-title");
@@ -783,6 +807,7 @@ function selectLesson(idx) {
   updateGutter();
   output.textContent = "";
   code.focus();
+  reportActivity("view", { lesson: idx + 1 });
 }
 
 function runCode() {
@@ -832,6 +857,7 @@ function runCode() {
       completed.sort((a, b) => a - b);
       saveProgress();
       updateProgressBar();
+      reportActivity("complete", { lesson: current + 1, extra: "progress:" + completed.length + "/" + LESSONS.length });
     }
     renderList();
     if (isNew) {
@@ -841,6 +867,7 @@ function runCode() {
     }
   } else {
     registerFailure(src, out);
+    reportActivity("fail", { lesson: current + 1 });
     let msg = "Not quite right. Expected:\n" + lesson.expected.join("\n") +
       "\n\nYour output:\n" + (out || "(nothing)");
     showBanner(msg, "fail");
