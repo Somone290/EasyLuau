@@ -153,9 +153,9 @@
   async function syncState(force) {
     if (!trackingEnabled()) return;
     const now = Date.now();
-    if (!force && now - lastStateWrite < 1500) {
+    if (!force && now - lastStateWrite < 600) {
       if (!trailingTimer) {
-        trailingTimer = setTimeout(function () { trailingTimer = null; syncState(true); }, 1550);
+        trailingTimer = setTimeout(function () { trailingTimer = null; syncState(true); }, 700);
       }
       return;
     }
@@ -195,6 +195,7 @@
     presence: presence,
     syncState: syncState,
     visitorId: visitorId,
+    openMessage: openMessage,
     getLocalLog: function () { return localLog; },
     initFirebase: initFirebase,
     getConfig: getFbConfig,
@@ -252,6 +253,12 @@
     el.liveSummary = $("live-summary");
     el.liveFeed = $("live-feed");
     el.liveWatch = $("live-watch");
+    el.msgBox = $("msg-box");
+    el.msgTarget = $("msg-target");
+    el.msgInput = $("msg-input");
+    el.msgSend = $("msg-send");
+    el.msgClose = $("msg-close");
+    el.msgStatus = $("msg-status");
     el.fbInfo = $("fb-setup-info");
     el.fbInput = $("fb-config-input");
     el.fbSaveBtn = $("fb-save-btn");
@@ -558,7 +565,8 @@
       return '<div class="live-row"><span class="live-time">' + fmtTime(ev.t) + "</span>" +
         "<span>" + shortId(ev.id) + "</span>" +
         typeLabel(ev.type) +
-        "<span>Level " + (ev.lesson || "?") + "</span></div>";
+        "<span>Level " + (ev.lesson || "?") + "</span>" +
+        '<button class="msg-btn" data-id="' + escapeHtml(ev.id) + '">Message</button></div>';
     }).join("") || '<div class="live-note">No activity yet.</div>';
     renderLocalWatch();
   }
@@ -575,7 +583,8 @@
     const outTxt = (v.output || "").trim();
     return '<div class="watch-card">' +
       '<div class="watch-head"><strong>#' + shortId(v.id) + "</strong>" +
-      '<span class="live-ok">● LIVE</span><span>Level ' + (v.lesson || "?") + " (" + (v.status || "browsing") + ")</span></div>" +
+      '<span class="live-ok">● LIVE</span><span>Level ' + (v.lesson || "?") + " (" + (v.status || "browsing") + ")</span>" +
+      '<button class="msg-btn" data-id="' + escapeHtml(v.id) + '">Message</button></div>' +
       '<div class="watch-label">Code</div><pre class="watch-code">' + escapeHtml(codeTxt || "(empty)") + "</pre>" +
       '<div class="watch-label">Output</div><pre class="watch-out">' + escapeHtml(outTxt || "(nothing)") + "</pre>" +
       '<div class="watch-meta">updated ' + ago(v.t) + "</div></div>";
@@ -632,7 +641,8 @@
       return '<div class="live-row"><span class="live-time">' + fmtTime(ev.t) + "</span>" +
         "<span>" + shortId(ev.id) + "</span>" +
         typeLabel(ev.type) +
-        "<span>Level " + (ev.lesson || "?") + "</span></div>";
+        "<span>Level " + (ev.lesson || "?") + "</span>" +
+        '<button class="msg-btn" data-id="' + escapeHtml(ev.id) + '">Message</button></div>';
     }).join("") || '<div class="live-note">No activity yet.</div>';
   }
 
@@ -652,11 +662,93 @@
       return '<div class="live-row"><span class="live-time">' + fmtTime(p.last) + "</span>" +
         "<span>" + shortId(p.id) + "</span>" +
         '<span class="live-ok">● LIVE</span>' +
-        "<span>Level " + (p.lesson || "?") + " (" + (p.status || "browsing") + ")</span></div>";
+        "<span>Level " + (p.lesson || "?") + " (" + (p.status || "browsing") + ")</span>" +
+        '<button class="msg-btn" data-id="' + escapeHtml(p.id) + '">Message</button></div>';
     }).join("");
     el.liveSummary.innerHTML =
       '<div class="live-summary-row"><span class="live-now">' + liveCount + " learning right now</span></div>" +
       '<div class="live-note">Live from Firebase Realtime Database.</div>' + rows;
+  }
+
+  /* ------------------------------ Messages ------------------------------ */
+
+  let msgTargetId = null;
+
+  function openMessage(id, label) {
+    msgTargetId = id || null;
+    if (!msgTargetId) return;
+    el.msgTarget.textContent = label || shortId(id);
+    el.msgInput.value = "";
+    el.msgStatus.textContent = "";
+    el.msgBox.hidden = false;
+    el.msgInput.focus();
+  }
+
+  function closeMessage() {
+    el.msgBox.hidden = true;
+    msgTargetId = null;
+  }
+
+  async function sendMessage() {
+    const text = el.msgInput.value.trim();
+    if (!text) { el.msgStatus.textContent = "Type a message first."; return; }
+    if (!msgTargetId) { el.msgStatus.textContent = "No target selected."; return; }
+    try {
+      const f = await initFirebase();
+      if (!f) { el.msgStatus.innerHTML = '<span class="live-fail">Firebase is not available.</span>'; return; }
+      await f.db.ref("messages/" + msgTargetId).push({
+        from: "Admin",
+        text: text,
+        t: firebase.database.ServerValue.TIMESTAMP
+      });
+      el.msgInput.value = "";
+      el.msgStatus.innerHTML = '<span class="live-ok">Sent to #' + shortId(msgTargetId) + ".</span>";
+    } catch (err) {
+      el.msgStatus.innerHTML = '<span class="live-fail">Failed: ' + escapeHtml((err && err.message) || "error") + "</span>";
+    }
+  }
+
+  function onMsgBtnClick(e) {
+    const btn = e.target && e.target.closest ? e.target.closest(".msg-btn") : null;
+    if (btn) openMessage(btn.getAttribute("data-id"));
+  }
+
+  /* --------------------------- Visitor toasts --------------------------- */
+
+  let toastWrap = null;
+
+  function showToast(text) {
+    if (!toastWrap) {
+      toastWrap = document.createElement("div");
+      toastWrap.id = "msg-toast-wrap";
+      document.body.appendChild(toastWrap);
+    }
+    const t = document.createElement("div");
+    t.className = "msg-toast";
+    t.innerHTML = '<div class="msg-toast-title">Admin message</div>' +
+      '<div class="msg-toast-body">' + escapeHtml(text) + "</div>" +
+      '<button class="msg-toast-close" title="Dismiss">&#215;</button>';
+    const close = function () { if (t.parentNode) t.parentNode.removeChild(t); };
+    t.querySelector(".msg-toast-close").addEventListener("click", close);
+    toastWrap.appendChild(t);
+    setTimeout(close, 15000);
+  }
+
+  function listenMessages() {
+    initFirebase().then(function (f) {
+      if (!f) return;
+      const id = visitorId();
+      f.db.ref("messages/" + id).on("child_added", function (snap) {
+        const m = snap.val();
+        if (!m || !m.t) return;
+        let last = 0;
+        try { last = parseInt(localStorage.getItem("admin_msg_seen") || "0", 10) || 0; } catch (e) {}
+        if (m.t > last) {
+          try { localStorage.setItem("admin_msg_seen", String(m.t)); } catch (e) {}
+          showToast(m.text || "(empty message)");
+        }
+      }, function (err) {});
+    });
   }
 
   /* ------------------------------ Settings ------------------------------ */
@@ -695,6 +787,12 @@
     el.resetSendBtn.addEventListener("click", sendReset);
     el.resetVerifyBtn.addEventListener("click", verifyReset);
     el.panelClose.addEventListener("click", logout);
+    el.msgSend.addEventListener("click", sendMessage);
+    el.msgClose.addEventListener("click", closeMessage);
+    el.msgInput.addEventListener("keydown", function (e) { if (e.key === "Enter") sendMessage(); });
+    el.liveWatch.addEventListener("click", onMsgBtnClick);
+    el.liveSummary.addEventListener("click", onMsgBtnClick);
+    el.liveFeed.addEventListener("click", onMsgBtnClick);
 
     el.tabs.querySelectorAll("[data-tab]").forEach(function (btn) {
       btn.addEventListener("click", function () {
@@ -769,6 +867,7 @@
     if (window.FBApp.hasConfig()) {
       presence();
       setInterval(presence, 10000);
+      listenMessages();
       window.addEventListener("pagehide", function () {
         if (fb) {
           try { fb.db.ref("presence/" + visitorId()).remove(); } catch (e) {}
@@ -777,7 +876,7 @@
     }
     setInterval(function () {
       if (el.tabLive && !el.tabLive.hidden && !(fbActivityOff || fbPresenceOff || fbStateOff)) renderLocalLive();
-    }, 2000);
+    }, 1000);
   }
 
   if (document.readyState === "loading") {

@@ -182,6 +182,14 @@
   </div>
   <div id="tab-live" class="admin-tab" hidden>
     <div id="live-summary"></div>
+    <div id="msg-box" class="msg-box" hidden>
+      <div class="msg-head">Message <strong id="msg-target"></strong><button id="msg-close" class="msg-close" title="Close">&#215;</button></div>
+      <div class="msg-row">
+        <input id="msg-input" type="text" placeholder="Type a message to this visitor..." maxlength="300">
+        <button id="msg-send" class="admin-primary">Send</button>
+      </div>
+      <div id="msg-status" class="admin-msg"></div>
+    </div>
     <h4>Now watching</h4>
     <div id="live-watch"></div>
     <h4>Activity feed</h4>

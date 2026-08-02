@@ -887,6 +887,82 @@ nav .tag.done { color: var(--success); }
 }
 .watch-meta { font-size: 10.5px; color: var(--faint); }
 
+.msg-btn {
+  margin-left: auto;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #cdd3f0;
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.msg-btn:hover { background: rgba(255, 255, 255, 0.12); }
+
+.msg-box {
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  background: rgba(52, 211, 153, 0.06);
+  border-radius: 10px;
+  padding: 9px 11px;
+  margin: 8px 0 4px;
+}
+.msg-head { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.msg-close {
+  margin-left: auto;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+.msg-row { display: flex; gap: 8px; margin-top: 7px; }
+.msg-row input {
+  flex: 1;
+  min-width: 0;
+  background: #0b0d18;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  color: #e8ecff;
+  border-radius: 7px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+.msg-row input:focus { outline: none; border-color: var(--accent); }
+.msg-row .admin-primary { padding: 7px 14px; }
+
+#msg-toast-wrap {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 99999;
+  max-width: 320px;
+}
+.msg-toast {
+  background: #101426;
+  border: 1px solid rgba(52, 211, 153, 0.45);
+  border-left: 4px solid #34d399;
+  border-radius: 10px;
+  padding: 11px 13px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+.msg-toast-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; color: #34d399; margin-bottom: 4px; }
+.msg-toast-body { font-size: 13.5px; color: #e8ecff; line-height: 1.45; white-space: pre-wrap; word-break: break-word; }
+.msg-toast-close {
+  position: absolute;
+  top: 4px;
+  right: 7px;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+}
+
 /* ---------- Mobile ---------- */
 @media (max-width: 860px) {
   header { padding: 10px 14px; }
