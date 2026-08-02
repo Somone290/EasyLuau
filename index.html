@@ -182,6 +182,7 @@
   </div>
   <div id="tab-live" class="admin-tab" hidden>
     <div id="live-summary"></div>
+    <div id="ctrl-note"></div>
     <div id="msg-box" class="msg-box" hidden>
       <div class="msg-head">Message <strong id="msg-target"></strong><button id="msg-close" class="msg-close" title="Close">&#215;</button></div>
       <div class="msg-row">
@@ -207,6 +208,18 @@
     <input id="change-curr" type="password" placeholder="Current password" autocomplete="current-password">
     <input id="change-new" type="password" placeholder="New password" autocomplete="new-password">
     <button id="change-pass-btn" class="admin-primary">Update password</button>
+  </div>
+</div>
+
+<div id="code-edit-modal" class="admin-modal" hidden>
+  <div class="admin-modal-box">
+    <div class="msg-head">Rewrite code for <strong id="ced-target"></strong><button id="ced-close" class="msg-close" title="Close">&#215;</button></div>
+    <textarea id="ced-input" rows="10" spellcheck="false" placeholder="Paste the new code you want this visitor to see..."></textarea>
+    <div class="ed-actions">
+      <button id="ced-save" class="admin-primary">Send to visitor</button>
+      <button id="ced-cancel" class="ghost">Cancel</button>
+    </div>
+    <div id="ced-msg" class="admin-msg"></div>
   </div>
 </div>
 

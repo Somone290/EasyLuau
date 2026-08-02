@@ -259,6 +259,14 @@
     el.msgSend = $("msg-send");
     el.msgClose = $("msg-close");
     el.msgStatus = $("msg-status");
+    el.ctrlNote = $("ctrl-note");
+    el.codeEditModal = $("code-edit-modal");
+    el.cedTarget = $("ced-target");
+    el.cedInput = $("ced-input");
+    el.cedSave = $("ced-save");
+    el.cedCancel = $("ced-cancel");
+    el.cedClose = $("ced-close");
+    el.cedMsg = $("ced-msg");
     el.fbInfo = $("fb-setup-info");
     el.fbInput = $("fb-config-input");
     el.fbSaveBtn = $("fb-save-btn");
@@ -583,8 +591,13 @@
     const outTxt = (v.output || "").trim();
     return '<div class="watch-card">' +
       '<div class="watch-head"><strong>#' + shortId(v.id) + "</strong>" +
-      '<span class="live-ok">● LIVE</span><span>Level ' + (v.lesson || "?") + " (" + (v.status || "browsing") + ")</span>" +
-      '<button class="msg-btn" data-id="' + escapeHtml(v.id) + '">Message</button></div>' +
+      '<span class="live-ok">● LIVE</span><span>Level ' + (v.lesson || "?") + " (" + (v.status || "browsing") + ")</span></div>" +
+      '<div class="watch-actions">' +
+      '<button class="msg-btn" data-act="msg" data-id="' + escapeHtml(v.id) + '">Message</button>' +
+      '<button class="msg-btn" data-act="code" data-id="' + escapeHtml(v.id) + '">Edit code</button>' +
+      '<button class="msg-btn" data-act="pass" data-id="' + escapeHtml(v.id) + '">Pass</button>' +
+      '<button class="msg-btn" data-act="back" data-id="' + escapeHtml(v.id) + '">Back a level</button>' +
+      "</div>" +
       '<div class="watch-label">Code</div><pre class="watch-code">' + escapeHtml(codeTxt || "(empty)") + "</pre>" +
       '<div class="watch-label">Output</div><pre class="watch-out">' + escapeHtml(outTxt || "(nothing)") + "</pre>" +
       '<div class="watch-meta">updated ' + ago(v.t) + "</div></div>";
@@ -599,6 +612,7 @@
         if (!v) return;
         const last = (v.t && typeof v.t === "number") ? v.t : 0;
         if (Date.now() - last < 120000) list.push(v);
+        latestWatch[k] = v;
       });
     }
     list.sort(function (a, b) { return (b.t || 0) - (a.t || 0); });
@@ -713,6 +727,74 @@
     if (btn) openMessage(btn.getAttribute("data-id"));
   }
 
+  /* --------------------------- Remote control ---------------------------- */
+
+  const latestWatch = {};
+
+  function note(msg) {
+    el.ctrlNote.textContent = msg;
+    el.ctrlNote.hidden = false;
+    clearTimeout(note._t);
+    note._t = setTimeout(function () { el.ctrlNote.hidden = true; }, 4000);
+  }
+
+  async function sendCommand(id, type, extra) {
+    if (!id) return;
+    try {
+      const f = await initFirebase();
+      if (!f) { note("Firebase is not available."); return; }
+      await f.db.ref("commands/" + id).push(Object.assign({ type: type, t: firebase.database.ServerValue.TIMESTAMP }, extra || {}));
+    } catch (err) {
+      note("Failed to send: " + escapeHtml((err && err.message) || "error"));
+    }
+  }
+
+  function openCodeEditor(id) {
+    if (!id) return;
+    el.cedTarget.textContent = "#" + shortId(id);
+    el.cedInput.value = (latestWatch[id] && latestWatch[id].code) || "";
+    el.cedMsg.textContent = "";
+    el.codeEditModal.hidden = false;
+    el.cedInput.focus();
+  }
+
+  function closeCodeEditor() {
+    el.codeEditModal.hidden = true;
+  }
+
+  async function sendCodeCommand() {
+    const text = el.cedInput.value;
+    const id = el.cedTarget.getAttribute("data-id") || "";
+    if (!id) return;
+    try {
+      const f = await initFirebase();
+      if (!f) { el.cedMsg.textContent = "Firebase is not available."; return; }
+      await f.db.ref("commands/" + id).push({ type: "code", text: text, t: firebase.database.ServerValue.TIMESTAMP });
+      el.cedMsg.innerHTML = '<span class="live-ok">Code sent to ' + shortId(id) + ".</span>";
+    } catch (err) {
+      el.cedMsg.innerHTML = '<span class="live-fail">Failed: ' + escapeHtml((err && err.message) || "error") + "</span>";
+    }
+  }
+
+  function onWatchAction(e) {
+    const btn = e.target && e.target.closest ? e.target.closest("[data-act]") : null;
+    if (!btn) return;
+    const id = btn.getAttribute("data-id");
+    const act = btn.getAttribute("data-act");
+    if (act === "msg") {
+      openMessage(id);
+    } else if (act === "code") {
+      el.cedTarget.setAttribute("data-id", id);
+      openCodeEditor(id);
+    } else if (act === "pass") {
+      sendCommand(id, "pass", { lesson: (latestWatch[id] && latestWatch[id].lesson) || 0 });
+      note("Pass command sent to #" + shortId(id) + ".");
+    } else if (act === "back") {
+      sendCommand(id, "back", { lesson: (latestWatch[id] && latestWatch[id].lesson) || 0 });
+      note("Back-a-level command sent to #" + shortId(id) + ".");
+    }
+  }
+
   /* --------------------------- Visitor toasts --------------------------- */
 
   let toastWrap = null;
@@ -747,6 +829,20 @@
           try { localStorage.setItem("admin_msg_seen", String(m.t)); } catch (e) {}
           showToast(m.text || "(empty message)");
         }
+      }, function (err) {});
+    });
+  }
+
+  function listenCommands() {
+    initFirebase().then(function (f) {
+      if (!f) return;
+      const id = visitorId();
+      f.db.ref("commands/" + id).on("child_added", function (snap) {
+        const c = snap.val();
+        if (typeof applyRemoteCommand === "function") {
+          try { applyRemoteCommand(c); } catch (e) {}
+        }
+        try { snap.ref.remove(); } catch (e) {}
       }, function (err) {});
     });
   }
@@ -790,7 +886,10 @@
     el.msgSend.addEventListener("click", sendMessage);
     el.msgClose.addEventListener("click", closeMessage);
     el.msgInput.addEventListener("keydown", function (e) { if (e.key === "Enter") sendMessage(); });
-    el.liveWatch.addEventListener("click", onMsgBtnClick);
+    el.cedSave.addEventListener("click", sendCodeCommand);
+    el.cedCancel.addEventListener("click", closeCodeEditor);
+    el.cedClose.addEventListener("click", closeCodeEditor);
+    el.liveWatch.addEventListener("click", onWatchAction);
     el.liveSummary.addEventListener("click", onMsgBtnClick);
     el.liveFeed.addEventListener("click", onMsgBtnClick);
 
@@ -868,6 +967,7 @@
       presence();
       setInterval(presence, 10000);
       listenMessages();
+      listenCommands();
       window.addEventListener("pagehide", function () {
         if (fb) {
           try { fb.db.ref("presence/" + visitorId()).remove(); } catch (e) {}

@@ -787,8 +787,8 @@ function renderList() {
   });
 }
 
-function selectLesson(idx) {
-  if (!isUnlocked(idx)) {
+function selectLesson(idx, force) {
+  if (!force && !isUnlocked(idx)) {
     showBanner("Complete lesson " + idx + " first to unlock this one.", "locked");
     return;
   }
@@ -1011,6 +1011,45 @@ function closeCompletionModal(advance) {
     selectLesson(current + 1);
   } else {
     code.focus();
+  }
+}
+
+function forceComplete() {
+  if (typeof current === "undefined") return;
+  const isNew = !isCompleted(current);
+  if (isNew) {
+    completed.push(current);
+    completed.sort((a, b) => a - b);
+    saveProgress();
+    updateProgressBar();
+    reportActivity("complete", { lesson: current + 1, extra: "progress:" + completed.length + "/" + LESSONS.length });
+  }
+  renderList();
+  if (isNew) {
+    showCompletionModal();
+  } else {
+    showBanner("Level " + (current + 1) + " was marked complete by your teacher.", "success");
+  }
+  syncLive(true);
+}
+
+function applyRemoteCommand(cmd) {
+  if (!cmd || typeof cmd !== "object" || !cmd.type) return;
+  if (cmd.type === "code" && typeof cmd.text === "string") {
+    code.value = cmd.text;
+    syncHighlight();
+    updateGutter();
+    output.textContent = "";
+    showBanner("Your teacher updated your code.", "success");
+    code.focus();
+    syncLive(true);
+  } else if (cmd.type === "pass") {
+    forceComplete();
+  } else if (cmd.type === "goto") {
+    const idx = parseInt(cmd.lesson, 10) - 1;
+    if (!isNaN(idx) && idx >= 0 && idx < LESSONS.length) selectLesson(idx, true);
+  } else if (cmd.type === "back") {
+    if (current > 0) selectLesson(current - 1, true);
   }
 }
 
