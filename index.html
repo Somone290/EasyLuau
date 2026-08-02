@@ -189,6 +189,14 @@
         <input id="msg-input" type="text" placeholder="Type a message to this visitor..." maxlength="300">
         <button id="msg-send" class="admin-primary">Send</button>
       </div>
+      <div class="msg-photo">
+        <button id="msg-photo-btn" class="ghost" type="button">Add photo</button>
+        <input id="msg-file" type="file" accept="image/*" hidden>
+        <div id="msg-preview-wrap" hidden>
+          <img id="msg-preview" alt="preview">
+          <button id="msg-preview-clear" class="msg-close" title="Remove photo">&#215;</button>
+        </div>
+      </div>
       <div id="msg-status" class="admin-msg"></div>
     </div>
     <h4>Now watching</h4>

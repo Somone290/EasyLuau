@@ -259,6 +259,11 @@
     el.msgSend = $("msg-send");
     el.msgClose = $("msg-close");
     el.msgStatus = $("msg-status");
+    el.msgPhotoBtn = $("msg-photo-btn");
+    el.msgFile = $("msg-file");
+    el.msgPreviewWrap = $("msg-preview-wrap");
+    el.msgPreview = $("msg-preview");
+    el.msgPreviewClear = $("msg-preview-clear");
     el.ctrlNote = $("ctrl-note");
     el.codeEditModal = $("code-edit-modal");
     el.cedTarget = $("ced-target");
@@ -687,6 +692,7 @@
   /* ------------------------------ Messages ------------------------------ */
 
   let msgTargetId = null;
+  let pendingPhoto = null;
 
   function openMessage(id, label) {
     msgTargetId = id || null;
@@ -694,6 +700,7 @@
     el.msgTarget.textContent = label || shortId(id);
     el.msgInput.value = "";
     el.msgStatus.textContent = "";
+    clearPhoto();
     el.msgBox.hidden = false;
     el.msgInput.focus();
   }
@@ -701,11 +708,54 @@
   function closeMessage() {
     el.msgBox.hidden = true;
     msgTargetId = null;
+    clearPhoto();
+  }
+
+  function clearPhoto() {
+    pendingPhoto = null;
+    el.msgPreview.src = "";
+    el.msgPreviewWrap.hidden = true;
+    el.msgFile.value = "";
+  }
+
+  function fileToDataUrl(file, cb) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      const img = new Image();
+      img.onload = function () {
+        const maxW = 900;
+        const scale = Math.min(1, maxW / img.width);
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+        cb(canvas.toDataURL("image/jpeg", 0.82));
+      };
+      img.onerror = function () { cb(null); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function () { cb(null); };
+    reader.readAsDataURL(file);
+  }
+
+  function onMsgFileChange() {
+    const file = el.msgFile.files && el.msgFile.files[0];
+    if (!file) return;
+    fileToDataUrl(file, function (dataUrl) {
+      if (!dataUrl) { el.msgStatus.textContent = "Could not read that image."; return; }
+      pendingPhoto = dataUrl;
+      el.msgPreview.src = dataUrl;
+      el.msgPreviewWrap.hidden = false;
+      el.msgStatus.innerHTML = '<span class="live-ok">Photo added.</span>';
+    });
   }
 
   async function sendMessage() {
     const text = el.msgInput.value.trim();
-    if (!text) { el.msgStatus.textContent = "Type a message first."; return; }
+    if (!text && !pendingPhoto) { el.msgStatus.textContent = "Type a message or add a photo first."; return; }
     if (!msgTargetId) { el.msgStatus.textContent = "No target selected."; return; }
     try {
       const f = await initFirebase();
@@ -713,9 +763,11 @@
       await f.db.ref("messages/" + msgTargetId).push({
         from: "Admin",
         text: text,
+        photo: pendingPhoto || "",
         t: firebase.database.ServerValue.TIMESTAMP
       });
       el.msgInput.value = "";
+      clearPhoto();
       el.msgStatus.innerHTML = '<span class="live-ok">Sent to #' + shortId(msgTargetId) + ".</span>";
     } catch (err) {
       el.msgStatus.innerHTML = '<span class="live-fail">Failed: ' + escapeHtml((err && err.message) || "error") + "</span>";
@@ -799,7 +851,11 @@
 
   let toastWrap = null;
 
-  function showToast(text) {
+  function showToast(m) {
+    if (!m || typeof m !== "object") return;
+    const text = m.text || "";
+    const photo = m.photo || "";
+    if (!text && !photo) return;
     if (!toastWrap) {
       toastWrap = document.createElement("div");
       toastWrap.id = "msg-toast-wrap";
@@ -808,12 +864,13 @@
     const t = document.createElement("div");
     t.className = "msg-toast";
     t.innerHTML = '<div class="msg-toast-title">Admin message</div>' +
-      '<div class="msg-toast-body">' + escapeHtml(text) + "</div>" +
+      (photo ? '<img class="msg-toast-img" src="' + escapeHtml(photo) + '" alt="photo">' : "") +
+      (text ? '<div class="msg-toast-body">' + escapeHtml(text) + "</div>" : "") +
       '<button class="msg-toast-close" title="Dismiss">&#215;</button>';
     const close = function () { if (t.parentNode) t.parentNode.removeChild(t); };
     t.querySelector(".msg-toast-close").addEventListener("click", close);
     toastWrap.appendChild(t);
-    setTimeout(close, 15000);
+    setTimeout(close, 20000);
   }
 
   function listenMessages() {
@@ -827,7 +884,7 @@
         try { last = parseInt(localStorage.getItem("admin_msg_seen") || "0", 10) || 0; } catch (e) {}
         if (m.t > last) {
           try { localStorage.setItem("admin_msg_seen", String(m.t)); } catch (e) {}
-          showToast(m.text || "(empty message)");
+          showToast(m);
         }
       }, function (err) {});
     });
@@ -886,6 +943,9 @@
     el.msgSend.addEventListener("click", sendMessage);
     el.msgClose.addEventListener("click", closeMessage);
     el.msgInput.addEventListener("keydown", function (e) { if (e.key === "Enter") sendMessage(); });
+    el.msgPhotoBtn.addEventListener("click", function () { el.msgFile.click(); });
+    el.msgFile.addEventListener("change", onMsgFileChange);
+    el.msgPreviewClear.addEventListener("click", clearPhoto);
     el.cedSave.addEventListener("click", sendCodeCommand);
     el.cedCancel.addEventListener("click", closeCodeEditor);
     el.cedClose.addEventListener("click", closeCodeEditor);
