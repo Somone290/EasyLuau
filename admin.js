@@ -45,6 +45,7 @@
     localStorage.setItem(ADMIN_STORE_KEY, JSON.stringify(acc));
   }
   function isAdminSession() { return sessionStorage.getItem(ADMIN_SESSION_KEY) === "1"; }
+  function trackingEnabled() { return !isAdminSession(); }
 
   /* ------------------------------ Firebase ------------------------------ */
 
@@ -109,6 +110,7 @@
   }
 
   async function report(type, data) {
+    if (!trackingEnabled()) return;
     data = data || {};
     const id = visitorId();
     const ev = { id: id, t: Date.now(), type: type, lesson: data.lesson || 0, extra: data.extra || null };
@@ -122,6 +124,7 @@
   }
 
   async function presence() {
+    if (!trackingEnabled()) return;
     const id = visitorId();
     let lesson = 0, status = "browsing";
     try {
@@ -148,6 +151,7 @@
   let localState = null;
 
   async function syncState(force) {
+    if (!trackingEnabled()) return;
     const now = Date.now();
     if (!force && now - lastStateWrite < 1500) {
       if (!trailingTimer) {
@@ -266,12 +270,26 @@
     el.panel.hidden = false;
     renderLevelList();
     refreshLive();
+    removeOwnNodes();
+  }
+
+  async function removeOwnNodes() {
+    try {
+      const f = await initFirebase();
+      if (f) {
+        const id = visitorId();
+        await f.db.ref("presence/" + id).remove();
+        await f.db.ref("state/" + id).remove();
+      }
+    } catch (e) {}
   }
 
   function logout() {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     el.panel.hidden = true;
     el.login.hidden = false;
+    lastStateWrite = 0;
+    setTimeout(function () { presence(); }, 400);
   }
 
   async function handleLogin() {
