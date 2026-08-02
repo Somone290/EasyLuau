@@ -505,12 +505,17 @@
     if (!f) return false;
     if (fbActivityOff) return true;
     el.liveSummary.innerHTML = '<div class="live-summary-row"><span class="live-now">Connecting…</span></div>';
+    const onErr = function (err) {
+      el.liveSummary.innerHTML = '<div class="live-fail">Firebase error: ' +
+        escapeHtml((err && err.message) || "permission denied") +
+        ' — check your Realtime Database rules.</div>';
+    };
     fbActivityOff = f.db.ref("activity").orderByChild("t").limitToLast(60).on("value", function (snap) {
       renderFbFeed(snap.val());
-    });
+    }, onErr);
     fbPresenceOff = f.db.ref("presence").on("value", function (snap) {
       renderFbPresence(snap.val());
-    });
+    }, onErr);
     return true;
   }
 
