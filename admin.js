@@ -741,16 +741,33 @@
     reader.readAsDataURL(file);
   }
 
+  function applyPhoto(dataUrl, label) {
+    if (!dataUrl) { el.msgStatus.textContent = "Could not read that image."; return; }
+    pendingPhoto = dataUrl;
+    el.msgPreview.src = dataUrl;
+    el.msgPreviewWrap.hidden = false;
+    el.msgStatus.innerHTML = '<span class="live-ok">' + label + " added.</span>";
+  }
+
   function onMsgFileChange() {
     const file = el.msgFile.files && el.msgFile.files[0];
     if (!file) return;
-    fileToDataUrl(file, function (dataUrl) {
-      if (!dataUrl) { el.msgStatus.textContent = "Could not read that image."; return; }
-      pendingPhoto = dataUrl;
-      el.msgPreview.src = dataUrl;
-      el.msgPreviewWrap.hidden = false;
-      el.msgStatus.innerHTML = '<span class="live-ok">Photo added.</span>';
-    });
+    fileToDataUrl(file, function (dataUrl) { applyPhoto(dataUrl, "Photo"); });
+  }
+
+  function onMsgPaste(e) {
+    const items = (e.clipboardData && e.clipboardData.items) ? e.clipboardData.items : [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type && item.type.indexOf("image/") === 0) {
+        const file = item.getAsFile && item.getAsFile();
+        if (file) {
+          e.preventDefault();
+          fileToDataUrl(file, function (dataUrl) { applyPhoto(dataUrl, "Pasted photo"); });
+        }
+        return;
+      }
+    }
   }
 
   async function sendMessage() {
@@ -946,6 +963,10 @@
     el.msgPhotoBtn.addEventListener("click", function () { el.msgFile.click(); });
     el.msgFile.addEventListener("change", onMsgFileChange);
     el.msgPreviewClear.addEventListener("click", clearPhoto);
+    document.addEventListener("paste", function (e) {
+      if (!el.msgBox || el.msgBox.hidden) return;
+      onMsgPaste(e);
+    });
     el.cedSave.addEventListener("click", sendCodeCommand);
     el.cedCancel.addEventListener("click", closeCodeEditor);
     el.cedClose.addEventListener("click", closeCodeEditor);
