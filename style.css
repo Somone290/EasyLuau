@@ -861,3 +861,56 @@ nav .tag.done { color: var(--success); }
 .live-dim { color: var(--muted); }
 #live-feed { display: flex; flex-direction: column; gap: 6px; }
 
+.watch-card {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.watch-head { display: flex; align-items: center; gap: 8px; font-size: 12.5px; flex-wrap: wrap; }
+.watch-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); margin-top: 4px; }
+.watch-code, .watch-out {
+  margin: 0;
+  padding: 7px 9px;
+  background: #0b0d18;
+  border-radius: 7px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 110px;
+  overflow: auto;
+  color: #cdd3f0;
+}
+.watch-meta { font-size: 10.5px; color: var(--faint); }
+
+/* ---------- Mobile ---------- */
+@media (max-width: 860px) {
+  header { padding: 10px 14px; }
+  .brand .logo { width: 36px; height: 36px; }
+  .brand h1 { font-size: 17px; }
+  .brand p { display: none; }
+  .progress-card { min-width: 0; padding: 6px 10px; }
+  main { padding: 16px 14px 44px; gap: 16px; }
+  #editor-wrap { height: 220px; }
+  .editor-header { flex-wrap: wrap; }
+  .editor-btns { width: 100%; }
+  .editor-btns button { flex: 1; }
+  button.run { padding: 11px 14px; font-size: 14px; }
+  .output-header { flex-wrap: wrap; }
+  .hint-box { flex-direction: column; }
+  #admin-panel { width: calc(100vw - 20px); max-height: calc(100vh - 20px); }
+}
+
+/* ---------- Very small screens ---------- */
+@media (max-width: 480px) {
+  .brand h1 { font-size: 15px; }
+  #gutter { width: 40px; flex-basis: 40px; }
+  .lesson-head .lesson-badge { width: 34px; height: 34px; font-size: 13px; }
+  .ed-grid { grid-template-columns: 1fr; }
+  #complete-card, .admin-card { padding: 20px; }
+}
+

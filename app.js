@@ -642,6 +642,10 @@ function reportActivity(type, data) {
   if (window.FBApp && typeof window.FBApp.report === "function") window.FBApp.report(type, data);
 }
 
+function syncLive(force) {
+  if (window.FBApp && typeof window.FBApp.syncState === "function") window.FBApp.syncState(!!force);
+}
+
 const lessonList = document.getElementById("lesson-list");
 const lessonBadge = document.getElementById("lesson-badge");
 const lessonTitle = document.getElementById("lesson-title");
@@ -808,6 +812,7 @@ function selectLesson(idx) {
   output.textContent = "";
   code.focus();
   reportActivity("view", { lesson: idx + 1 });
+  syncLive(true);
 }
 
 function runCode() {
@@ -872,6 +877,7 @@ function runCode() {
       "\n\nYour output:\n" + (out || "(nothing)");
     showBanner(msg, "fail");
   }
+  syncLive(true);
 }
 
 function registerFailure(src, out, err) {
@@ -1036,7 +1042,7 @@ function syncHighlight() {
   highlight.scrollLeft = code.scrollLeft;
 }
 
-code.addEventListener("input", () => { syncHighlight(); updateGutter(); });
+code.addEventListener("input", () => { syncHighlight(); updateGutter(); syncLive(); });
 code.addEventListener("scroll", () => {
   highlight.scrollTop = code.scrollTop;
   highlight.scrollLeft = code.scrollLeft;

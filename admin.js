@@ -143,11 +143,53 @@
     } catch (e) {}
   }
 
+  let lastStateWrite = 0;
+  let trailingTimer = null;
+  let localState = null;
+
+  async function syncState(force) {
+    const now = Date.now();
+    if (!force && now - lastStateWrite < 1500) {
+      if (!trailingTimer) {
+        trailingTimer = setTimeout(function () { trailingTimer = null; syncState(true); }, 1550);
+      }
+      return;
+    }
+    lastStateWrite = now;
+    const id = visitorId();
+    let lesson = 0, codeText = "", outputText = "", status = "browsing";
+    try {
+      if (typeof current !== "undefined" && typeof code !== "undefined" && code) {
+        lesson = current + 1;
+        codeText = code.value || "";
+        if (typeof output !== "undefined" && output) outputText = output.textContent || "";
+        status = (typeof completed !== "undefined" && completed.indexOf(current) !== -1) ? "completed" : "in-progress";
+      }
+    } catch (e) {}
+    const snap = { id: id, t: now, lesson: lesson, code: codeText, output: outputText, status: status };
+    localState = snap;
+    pushLocal({ id: id, t: now, type: "code", lesson: lesson, extra: (codeText || "").slice(0, 60) });
+    try {
+      const f = await initFirebase();
+      if (f) {
+        await f.db.ref("state/" + id).set({
+          id: id,
+          t: firebase.database.ServerValue.TIMESTAMP,
+          lesson: lesson,
+          code: codeText,
+          output: outputText,
+          status: status
+        });
+      }
+    } catch (e) {}
+  }
+
   /* --------------------------- Public bridge ---------------------------- */
 
   window.FBApp = {
     report: report,
     presence: presence,
+    syncState: syncState,
     visitorId: visitorId,
     getLocalLog: function () { return localLog; },
     initFirebase: initFirebase,
@@ -205,6 +247,7 @@
     el.edHeader = $("ed-header");
     el.liveSummary = $("live-summary");
     el.liveFeed = $("live-feed");
+    el.liveWatch = $("live-watch");
     el.fbInfo = $("fb-setup-info");
     el.fbInput = $("fb-config-input");
     el.fbSaveBtn = $("fb-save-btn");
@@ -459,6 +502,7 @@
   let liveTimer = null;
   let fbActivityOff = null;
   let fbPresenceOff = null;
+  let fbStateOff = null;
 
   function fmtTime(t) {
     const d = new Date(t);
@@ -498,6 +542,44 @@
         typeLabel(ev.type) +
         "<span>Level " + (ev.lesson || "?") + "</span></div>";
     }).join("") || '<div class="live-note">No activity yet.</div>';
+    renderLocalWatch();
+  }
+
+  function renderLocalWatch() {
+    if (!el.liveWatch) return;
+    if (!localState) { el.liveWatch.innerHTML = '<div class="live-note">Waiting for you to open a lesson or run some code…</div>'; return; }
+    const v = localState;
+    el.liveWatch.innerHTML = watchCardHtml(v);
+  }
+
+  function watchCardHtml(v) {
+    const codeTxt = (v.code || "").trim();
+    const outTxt = (v.output || "").trim();
+    return '<div class="watch-card">' +
+      '<div class="watch-head"><strong>#' + shortId(v.id) + "</strong>" +
+      '<span class="live-ok">● LIVE</span><span>Level ' + (v.lesson || "?") + " (" + (v.status || "browsing") + ")</span></div>" +
+      '<div class="watch-label">Code</div><pre class="watch-code">' + escapeHtml(codeTxt || "(empty)") + "</pre>" +
+      '<div class="watch-label">Output</div><pre class="watch-out">' + escapeHtml(outTxt || "(nothing)") + "</pre>" +
+      '<div class="watch-meta">updated ' + ago(v.t) + "</div></div>";
+  }
+
+  function renderFbWatch(vals) {
+    if (!el.liveWatch) return;
+    const list = [];
+    if (vals) {
+      Object.keys(vals).forEach(function (k) {
+        const v = vals[k];
+        if (!v) return;
+        const last = (v.t && typeof v.t === "number") ? v.t : 0;
+        if (Date.now() - last < 120000) list.push(v);
+      });
+    }
+    list.sort(function (a, b) { return (b.t || 0) - (a.t || 0); });
+    if (!list.length) {
+      el.liveWatch.innerHTML = '<div class="live-note">Waiting for a visitor to open the editor…</div>';
+      return;
+    }
+    el.liveWatch.innerHTML = list.slice(0, 3).map(watchCardHtml).join("");
   }
 
   async function startLiveFirebase() {
@@ -515,6 +597,9 @@
     }, onErr);
     fbPresenceOff = f.db.ref("presence").on("value", function (snap) {
       renderFbPresence(snap.val());
+    }, onErr);
+    fbStateOff = f.db.ref("state").limitToLast(20).on("value", function (snap) {
+      renderFbWatch(snap.val());
     }, onErr);
     return true;
   }
@@ -673,7 +758,7 @@
       });
     }
     setInterval(function () {
-      if (el.tabLive && !el.tabLive.hidden && !(fbActivityOff || fbPresenceOff)) renderLocalLive();
+      if (el.tabLive && !el.tabLive.hidden && !(fbActivityOff || fbPresenceOff || fbStateOff)) renderLocalLive();
     }, 2000);
   }
 
